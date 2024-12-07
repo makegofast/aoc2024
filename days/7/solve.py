@@ -16,6 +16,8 @@ def _product(a, b):
 def _sum(a, b):
 	return a+b
 
+def _concat(a, b):
+	return int(str(a) + str(b))
 
 def gen_permutations(operators, depth, perms, history = None):
 	if not history:
@@ -30,15 +32,17 @@ def gen_permutations(operators, depth, perms, history = None):
 
 	return perms 
 		
-def apply(values, ops):
+def apply(values, ops, target):
+	a = values.pop(0)
+	
 	for opname in ops:
 		oper = globals()[opname]
-		a = values.pop(0)
-		b = values.pop(0)
-		r = oper(a, b)
-		values.insert(0, r)
+		a = oper(a, values.pop(0))
+		
+		if a > target:
+			return False
 	
-	return values[0]
+	return a
 	
 def solve(data_filename, part2=False):
 	data = read_data(data_filename)
@@ -50,17 +54,16 @@ def solve(data_filename, part2=False):
 		ops.append('_concat')
 
 	for target, values in data:
-		#print(target, "values: ", values)
 		perms = gen_permutations(ops, len(values)-1, [])
-		#print(f"perms: {perms}")
+		print(target, values, len(perms))
 
 		valid = False
 
 		for perm in perms:
-			r = apply(values.copy(), perm)
-			#print(target, values, perm, r)
+			r = apply(values.copy(), perm, target)
 			if r == target:
 				valid = True
+				break
 
 		if valid:
 			total += target 
@@ -71,5 +74,5 @@ if __name__ == "__main__":
 	print("Part 1 Test: ", solve('days/7/test_data.txt'))
 	print("Part 1: ", solve('days/7/data.txt'))
 	
-	#print("Part 2 Test:", solve('days/7/test_data.txt', part2=True))
-	#print("Part 2:", solve('days/7/data.txt', part2=True)) 
+	print("Part 2 Test:", solve('days/7/test_data.txt', part2=True))
+	print("Part 2:", solve('days/7/data.txt', part2=True)) 
