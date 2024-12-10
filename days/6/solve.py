@@ -85,8 +85,12 @@ def run_map(map, obstruction = None):
     return status, visited
 
 if __name__ == "__main__":
-	print("Part 1 Test: ", solve('days/6/test_data.txt'))
-	print("Part 1: ", solve('days/6/data.txt'))
+    import time
+    start_time = time.time()
+	#print("Part 1 Test: ", solve('days/6/test_data.txt'))
+	#print("Part 1: ", solve('days/6/data.txt'))
 	
-	print("Part 2 Test:", solve('days/6/test_data.txt', part2=True))
-	print("Part 2:", solve('days/6/data.txt', part2=True)) 
+    #print("Part 2 Test:", solve('days/6/test_data.txt', part2=True))
+    print("Part 2:", solve('days/6/data.txt', part2=True)) 
+    end_time = time.time()
+    print(f"took {end_time-start_time} seconds")
