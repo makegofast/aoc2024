@@ -1,152 +1,92 @@
-import copy
+def read_data(filename):
+    map = []
 
-map = [] 
+    with open(filename) as fp:
+        for line in fp.readlines():
+            map.append([c for c in line.strip()])
+    
+    return map
 
-class LabMapper(object):
-    dorder = ['^', '>', 'v', '<']
+def find_start_pos(map):
+    for row, cols in enumerate(map):
+        if '^' in cols:
+            return [row, cols.index('^')]
+    
+    return None
+    
+def print_map(map):
+    print()
+    for row, cols in enumerate(map):
+        line = []
+        for col, char in enumerate(self.map[row]):
+            familiar = self.seems_familiar([row, col])
+            if char != '^' and familiar:
+                char = familiar 
 
-    dmap = [
+            line.append(char)
+        
+        print(''.join(line))
+    print()
+
+def solve(data_filename, part2=False):
+    map = read_data(data_filename)
+    status, visited = run_map(map)
+
+    if not part2:
+        return len(visited)
+    else:
+        candidates = set()
+        for pos in visited:
+            if map[pos[0]][pos[1]] == '^':
+                continue
+            status, _ = run_map(map, pos)
+            if status == "infinite_loop":
+                candidates.add(pos)
+
+        return len(candidates)
+
+def run_map(map, obstruction = None):
+    directions = [
         [-1, 0],
         [0, 1],
         [1, 0],
         [0, -1]
     ]
 
-    def __init__(self, map_filename):
-        self.orig_map = []
+    start_pos = find_start_pos(map)
+    velocity = directions[0]
 
-        with open(map_filename) as fp:
-            for row, line in enumerate(fp.readlines()):
-                self.orig_map.append([c for c in line.strip()])
+    current_pos = start_pos
+    status = None
+    visited = set()
+    path = set() 
 
-        self.reset()
-    
-    def reset(self):
-        self.map = copy.deepcopy(self.orig_map)
-        self.find_start_pos()
-        self.pos, self.dir = self.starting_pos, self.starting_dir
-        self.visited = []
-        self.path = [
-            {'pos': self.pos, 'dir': self.dir}
-        ]
-
-    def char_at(self, pos):
-        row, col = pos
-
+    while status not in ["off_screen", "infinite_loop"]:
+        nr, nc = [x+y for x, y in zip(current_pos, velocity)]  
         try:
-            return self.map[row][col]
+            char = map[nr][nc]
         except:
-            return None
+            char = None
 
-    def find_start_pos(self):
-        for row, cols in enumerate(self.orig_map):
-            for col, char in enumerate(cols):
-                if char == "^":
-                    self.starting_pos = [row, col]
-                    self.starting_dir = self.dorder.index(char)
-    
-    def seems_familiar(self, pos, dir = None):
-        updown = leftright = False 
-
-        matches = [(i, p) for i, p in enumerate(self.path) if p['pos'] == pos and (p['dir'] == dir or dir == None)]
-
-        if not matches:
-            return None
-
-        for i, p in matches:
-            if p['dir'] in [0, 2]:
-                updown = True
-            else:
-                leftright = True
-
-        if updown and leftright:
-            return '+'
-        elif updown:
-            return '|'
+        hash = tuple([nr, nc, tuple(velocity)])
+        if hash in path:
+            status = "infinite_loop"
+        if nr < 0 or nr >= len(map) or nc < 0 or nc >= len(map[0]):
+            status = "off_screen"
+        elif char == '#' or (nr, nc) == obstruction:
+            velocity = directions[(directions.index(velocity)+1)%len(directions)]
         else:
-            return '-'
+            current_pos = [nr, nc]
+            visited.add(tuple([nr, nc]))
+            path.add(tuple([nr, nc, tuple(velocity)]))
 
-    def turn_right(self):
-        self.dir = (self.dir+1) % len(self.dorder)
-    
-    def take_step(self):
-        new_pos = [x + y for x, y in zip(self.pos, self.dmap[self.dir])]
+        #print(status, current_pos, velocity, [nr, nc], char)
 
-        target_char = self.char_at(new_pos)
-
-        if not target_char:
-            result = "off screen"
-        elif target_char in("#", "O"):
-            self.turn_right()
-            result = "turned right"
-        else:
-            self.pos = new_pos
-            self.path.append({'pos': self.pos, 'dir': self.dir})
-            result = "took step"
-
-        if new_pos not in self.visited:
-            self.visited.append(new_pos)
-
-        if {'pos': self.pos, 'dir': self.dir} in self.path:
-            return "infinite loop"
-
-        self.path.append({'pos': self.pos, 'dir': self.dir})
-
-        return result
-
-    def walk(self):
-        breadcrumbs = []
-
-        while True:
-            result = self.take_step()
-
-            if result in ["off screen", "infinite loop"]:
-                return result
-       
-    def print_path(self):
-        print()
-        for row, cols in enumerate(self.map):
-            line = []
-            for col, char in enumerate(self.map[row]):
-                familiar = self.seems_familiar([row, col])
-                if char != '^' and familiar:
-                    char = familiar 
-
-                line.append(char)
-            
-            print(''.join(line))
-        print()
-
-def solve(data_filename, part2=False):
-    lm = LabMapper(data_filename)
-
-    result = lm.walk()
-    print(result, "visited: ", len(lm.visited))
-    if not part2:
-        return len(lm.visited)
-
-    lm.print_path()
-
-    if part2:
-        candidates = []
-        to_check = lm.path[1:]
-        for i, p in enumerate(to_check):
-            old_char = lm.char_at(p['pos'])
-            lm.map[p['pos'][0]][p['pos'][1]] = "O"
-            lm.pos = lm.path[i-1]['pos']
-            lm.dir = lm.path[i-1]['dir']
-            lm.path = to_check[:i-1]
-            result = lm.walk()
-            print(f"part2 test {i}, {p} {result} (candidates {len(candidates)})")
-            if result == "infinite loop" and p['pos'] not in candidates:
-                candidates.append(p['pos'])
-            lm.map[p['pos'][0]][p['pos'][1]] = old_char 
-
-        return len(candidates)
+    return status, visited
 
 if __name__ == "__main__":
 	print("Part 1 Test: ", solve('days/6/test_data.txt'))
-	#print("Part 1: ", solve('days/6/data.txt'))
+	print("Part 1: ", solve('days/6/data.txt'))
 	
 	print("Part 2 Test:", solve('days/6/test_data.txt', part2=True))
-	#print("Part 2:", solve('days/6/data.txt', part2=True)) 
+	print("Part 2:", solve('days/6/data.txt', part2=True)) 
